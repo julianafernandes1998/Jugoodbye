@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ju Bye Bye message</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5fff5;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      text-align: center;
+    }
+
+    h1 {
+      color: #4b5320;
+      margin-top: 30px;
+      font-size: 1.8em;
+    }
+
+    #container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    input {
+      padding: 15px;
+      font-size: 1.2em;
+      border-radius: 10px;
+      border: 2px solid #4b5320;
+      text-align: center;
+      width: 70%;
+      max-width: 300px;
+      outline: none;
+    }
+
+    .countdown-grid {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: bold;
+      color: #4b5320;
+    }
+
+    .time-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 2.5em;
+    }
+
+    .label {
+      font-size: 0.4em;
+      margin-top: 5px;
+    }
+
+    .colon {
+      font-size: 2.5em;
+    }
+
+    #finalMessage {
+      display: none;
+      color: #4b5320;
+      font-size: 1.4em;
+      padding: 20px;
+      max-width: 80%;
+    }
+
+    #popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #popupBox {
+      background-color: #f5fff5;
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      width: 80%;
+      max-width: 300px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    }
+
+    #popupBox p {
+      color: #4b5320;
+      margin-bottom: 20px;
+      font-size: 1.1em;
+      white-space: pre-line;
+    }
+
+    #popupBox button {
+      background-color: #4b5320;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    #messageOverlay {
+      position: fixed;
+      inset: 0;
+      background-color: #f5fff5;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 2000;
+    }
+
+    #messageCard {
+      background: white;
+      border: 3px solid #4b5320;
+      width: min(210mm, calc(100vw - 40px));
+      min-height: min(297mm, calc(100vh - 40px));
+      max-height: calc(100vh - 40px);
+      box-sizing: border-box;
+      padding: 24px 28px;
+      overflow: auto;
+      text-align: left;
+      color: black;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    #messageName {
+      font-weight: bold;
+      color: #4b5320;
+      margin-bottom: 18px;
+      font-size: 1.15em;
+    }
+
+    #messageBody {
+      white-space: normal;
+      font-size: 1.02em;
+    }
+
+    #messageBody p {
+      margin: 0 0 1em 0;
+    }
+
+    @media (max-width: 600px) {
+      #messageCard {
+        width: calc(100vw - 24px);
+        min-height: calc(100vh - 24px);
+        max-height: calc(100vh - 24px);
+        padding: 18px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>I'm leaving but...</h1>
+
+  <div id="container">
+    <input id="codeInput" type="text" placeholder="Insert your secret code">
+
+    <div id="countdown" class="countdown-grid">
+      <div class="time-block">
+        <div id="days">0</div>
+        <div class="label">days</div>
+      </div>
+
+      <div class="colon">:</div>
+
+      <div class="time-block">
+        <div id="hours">00</div>
+        <div class="label">hours</div>
+      </div>
+
+      <div class="colon">:</div>
+
+      <div class="time-block">
+        <div id="minutes">00</div>
+        <div class="label">minutes</div>
+      </div>
+
+      <div class="colon">:</div>
+
+      <div class="time-block">
+        <div id="seconds">00</div>
+        <div class="label">seconds</div>
+      </div>
+    </div>
+
+    <div id="finalMessage">
+      ... not without leaving each one of you a message!
+    </div>
+  </div>
+
+  <div id="popup">
+    <div id="popupBox">
+      <p id="popupText"></p>
+      <button onclick="fecharPopup()">Fechar</button>
+    </div>
+  </div>
+
+  <div id="messageOverlay">
+    <div id="messageCard">
+      <div id="messageName"></div>
+      <div id="messageBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const alvoData = new Date("2026-05-29T18:01:00+01:00").getTime();
+    let unlocked = false;
+    let mensagens = null;
+
+    async function carregarMensagens() {
+      const response = await fetch('./messages.json');
+      if (!response.ok) throw new Error('Não foi possível carregar o ficheiro messages.json');
+      mensagens = await response.json();
+    }
+
+    function atualizarCountdown() {
+      const agora = Date.now();
+      const diferenca = alvoData - agora;
+
+      if (diferenca <= 0) {
+        document.getElementById('countdown').style.display = 'none';
+        document.getElementById('finalMessage').style.display = 'block';
+        unlocked = true;
+        return;
+      }
+
+      const dias = Math.floor(diferenca / (1000 * 60 * 60 * 24));
+      const horas = Math.floor((diferenca / (1000 * 60 * 60)) % 24);
+      const minutos = Math.floor((diferenca / (1000 * 60)) % 60);
+      const segundos = Math.floor((diferenca / 1000) % 60);
+
+      function formatar(n) {
+        return n < 10 ? '0' + n : n;
+      }
+
+      document.getElementById('days').innerHTML = dias;
+      document.getElementById('hours').innerHTML = formatar(horas);
+      document.getElementById('minutes').innerHTML = formatar(minutos);
+      document.getElementById('seconds').innerHTML = formatar(segundos);
+    }
+
+    function mostrarPopup(mensagem) {
+      document.getElementById('popupText').innerText = mensagem;
+      document.getElementById('popup').style.display = 'flex';
+    }
+
+    function fecharPopup() {
+      document.getElementById('popup').style.display = 'none';
+    }
+
+    function escaparHtml(texto) {
+      return texto
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatarMensagem(texto) {
+      const partes = String(texto || '').trim().split(/\n\s*\n/);
+      return partes.map(parte => `<p>${escaparHtml(parte).replace(/\n/g, '<br>')}</p>`).join('');
+    }
+
+    function abrirMensagem(codigo) {
+      const pessoa = mensagens[codigo];
+      document.getElementById('messageName').innerText = pessoa.name || '';
+      document.getElementById('messageBody').innerHTML = formatarMensagem(pessoa.message || '');
+      document.getElementById('messageOverlay').style.display = 'flex';
+    }
+
+    document.getElementById('codeInput').addEventListener('change', function () {
+      const input = this.value.trim();
+
+      if (!unlocked) {
+        mostrarPopup('A curiosidade matou o gato....Good things take time... Volta dia 29/05 às 18:01.... Beijinhos!');
+        this.value = '';
+        return;
+      }
+
+      if (!mensagens) {
+        mostrarPopup('As mensagens ainda não foram carregadas.');
+        this.value = '';
+        return;
+      }
+
+      if (mensagens[input]) {
+        abrirMensagem(input);
+      } else {
+        mostrarPopup('Código inválido 👀');
+      }
+    });
+
+    document.getElementById('messageOverlay').addEventListener('click', function (e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+
+    setInterval(atualizarCountdown, 1000);
+    atualizarCountdown();
+    carregarMensagens().catch(err => {
+      console.error(err);
+      mostrarPopup('Erro ao carregar as mensagens. Confirma se o ficheiro messages.json está na mesma pasta do index.html.');
+    });
+  </script>
+</body>
+</html>
